@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#html pages
+*.html
+
+#AWS SAM
+.aws-sam 
+*.toml
+
+.DS_Store

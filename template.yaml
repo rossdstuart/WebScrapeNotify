@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters: 
+  S3BucketName:
+    Type: String
+    Default: ross-scraper-bucket
+  SnsTopicName:
+    Type: String
+    Default: ross-scraper-notify
+
+Globals:
+  Function:
+    Runtime: python3.9
+
+Resources:
+  CheckWebsitePeriodically:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda_handler.lambda_handler
+      # Runtime: python3.9
+      Timeout: 300
+      CodeUri: code/
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17' # Policy Document
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:*
+              Resource: 
+                - !Sub 'arn:aws:s3:::${S3BucketName}'
+                - !Sub 'arn:aws:s3:::${S3BucketName}/*'
+            - Effect: Allow
+              Action:
+                - sns:*
+              Resource: 
+                - !Ref Topic
+
+      Environment:
+        Variables:
+          S3BucketName: !Ref S3BucketName
+          TOPIC_ARN: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${SnsTopicName}
+      Events:
+        CheckWebsiteScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 minute)
+
+  Topic:
+    Type: AWS::SNS::Topic
+    Properties: 
+      Subscription: 
+        - Endpoint: "INSERT_EMAIL"
+          Protocol: "email"
+      TopicName: !Ref SnsTopicName
+
+
+  StateBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+
+
+    
+  ScrapperChangeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref Topic
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref CheckWebsitePeriodically
+      EvaluationPeriods: 1
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Sum
+      Threshold: '1'
