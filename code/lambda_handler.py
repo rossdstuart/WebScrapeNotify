@@ -94,7 +94,7 @@ def lambda_handler(event, context):
               # publish_message(SnsTopic, "this is a test message on topic")
               sns.publish(TopicArn=SnsTopic, 
                      Message=message, 
-                     Subject="WebScrapper Notify")
+                     Subject="WebScraper Notify")
               #exit program
               sys.exit(i)
        
